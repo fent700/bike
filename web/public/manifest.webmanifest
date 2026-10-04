@@ -1,0 +1,10 @@
+{
+  "name": "Bike",
+  "short_name": "Bike",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#0A0A0C",
+  "theme_color": "#0A0A0C",
+  "start_url": "./",
+  "icons": [{ "src": "./icon.png", "sizes": "1024x1024", "type": "image/png", "purpose": "any" }]
+}

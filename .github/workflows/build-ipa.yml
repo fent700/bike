@@ -1,0 +1,152 @@
+name: Build IPA
+
+# Public repo, so macOS minutes are free — every push to main gets an IPA.
+# README-only commits don't need one.
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Unsigned IPA
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Picking the newest installed Xcode beats pinning a version that gets
+      # retired out from under the workflow.
+      - name: Select the newest Xcode
+        run: |
+          set -euo pipefail
+          NEWEST="$(ls -d /Applications/Xcode*.app | sort -V | tail -1)"
+          echo "using $NEWEST"
+          sudo xcode-select -s "$NEWEST"
+          xcodebuild -version
+          swift --version
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install web dependencies
+        working-directory: web
+        run: npm ci
+
+      # Ride maths, turn-by-turn progress and lane matching against synthetic
+      # data. Cheap, and it fails before ten minutes of Xcode do.
+      - name: Self-test
+        working-directory: web
+        run: npm test
+
+      # The token is a public pk.* token and ends up inside the IPA either way;
+      # the secret only keeps it out of the git history. Without it the app
+      # asks for one on first launch and keeps it on the phone.
+      - name: Build web bundle into ios/Web
+        working-directory: web
+        env:
+          VITE_MAPBOX_ACCESS_TOKEN: ${{ secrets.MAPBOX_TOKEN }}
+          BIKE_BUILD: ${{ github.run_number }}
+        run: |
+          set -euo pipefail
+          npm run build:ios
+          test -f ../ios/Web/index.html
+          ls -la ../ios/Web ../ios/Web/assets
+          if [ -z "${VITE_MAPBOX_ACCESS_TOKEN}" ]; then
+            echo "::notice title=No MAPBOX_TOKEN secret::The app will ask for a Mapbox token on first launch."
+          fi
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      # project.yml is the source of truth — the .xcodeproj is gitignored and
+      # generated here, so a mangled project file can never reach CI. It must
+      # run after the web build: XcodeGen rejects the missing Web folder.
+      - name: Generate Xcode project
+        working-directory: ios
+        run: |
+          xcodegen generate
+          xcodebuild -list -project Bike.xcodeproj
+
+      # Signing off entirely. ESign signs on the way onto the device, so a
+      # signature applied here would only have to be stripped again — and the
+      # runner has no team, profile or key to sign with anyway. The run number
+      # becomes the build number so each IPA is distinguishable in ESign.
+      - name: Build (Release, iphoneos, unsigned)
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project Bike.xcodeproj \
+            -scheme Bike \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_ENTITLEMENTS="" \
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM="" \
+            ONLY_ACTIVE_ARCH=NO \
+            CURRENT_PROJECT_VERSION=${{ github.run_number }} \
+            2>&1 | tee build.log
+
+      # Compiler errors as annotations on the run page, so a red build says
+      # which line in which file without opening a 6,000-line log.
+      - name: Surface compiler errors
+        if: failure()
+        working-directory: ios
+        run: |
+          [ -f build.log ] || exit 0
+          grep -E ': error: ' build.log | sort -u | head -40 | \
+            sed -E "s#^${GITHUB_WORKSPACE}/##; s#^([^:]+):([0-9]+):([0-9]+): error: (.*)\$#::error file=\1,line=\2,col=\3::\4#" || true
+
+      # Scripts/package.sh, not an inline zip: it refuses to wrap a .app with
+      # no executable or no web bundle, which is exactly what a failed build
+      # leaves behind after its resources have copied.
+      - name: Package Payload/ into Bike.ipa
+        working-directory: ios
+        run: |
+          chmod +x Scripts/package.sh
+          ./Scripts/package.sh
+
+      - name: Confirm the archive is unsigned and clean
+        working-directory: ios
+        run: |
+          unzip -l Bike.ipa | tail -3
+          if unzip -l Bike.ipa | grep -q '_CodeSignature'; then
+            echo "error: archive carries a code signature — ESign expects it unsigned."
+            exit 1
+          fi
+          if unzip -l Bike.ipa | grep -q '__MACOSX'; then
+            echo "error: archive carries macOS resource forks — sideloaders reject these."
+            exit 1
+          fi
+          unzip -l Bike.ipa | grep -q 'Payload/Bike.app/Web/index.html'
+          echo "unsigned, no resource forks, Payload/Bike.app with its web bundle present."
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Bike-ipa-${{ github.run_number }}
+          path: ios/Bike.ipa
+          if-no-files-found: error
+          retention-days: 30

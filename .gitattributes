@@ -1,0 +1,20 @@
+# Authored on Windows, built on macOS. Without this, core.autocrlf decides the
+# line endings in the checkout and package.sh arrives with CRLF — which the
+# runner reports as `bad interpreter` or `$'\r': command not found`, several
+# steps away from the actual cause.
+* text=auto eol=lf
+
+*.sh      text eol=lf
+*.swift   text eol=lf
+*.yml     text eol=lf
+*.plist   text eol=lf
+*.json    text eol=lf
+*.md      text eol=lf
+*.js      text eol=lf
+*.mjs     text eol=lf
+*.jsx     text eol=lf
+*.css     text eol=lf
+*.html    text eol=lf
+
+*.png     binary
+*.jpg     binary
