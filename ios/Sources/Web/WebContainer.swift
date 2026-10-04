@@ -87,7 +87,7 @@ extension HUDViewController: @preconcurrency WKNavigationDelegate {
 }
 
 extension HUDViewController: @preconcurrency WKUIDelegate {
-    /// `target="_blank"` links — Mapbox's attribution and "Improve this map" —
+    /// `target="_blank"` links (Mapbox's attribution and "Improve this map")
     /// go to Safari instead of silently doing nothing.
     func webView(
         _ webView: WKWebView,

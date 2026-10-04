@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-/** Re-renders on a fixed beat — drives the ride clock and ETA. */
+/** Re-renders on a fixed beat; drives the ride clock and ETA. */
 export function useNow(interval = 1000, enabled = true) {
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {

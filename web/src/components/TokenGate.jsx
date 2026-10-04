@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { Bike, ClipboardPaste, KeyRound } from 'lucide-react'
-import { Spinner } from './ui'
+import { Spinner, cx } from './ui'
 
 /**
  * First-run (or rejected-token) screen. The token can be baked in at build
  * time through VITE_MAPBOX_ACCESS_TOKEN; when it isn't, it's pasted here once
  * and kept in this device's storage.
  */
-export default function TokenGate({ initialError, onSave, onCancel, currentToken }) {
+export default function TokenGate({ leaving, initialError, onSave, onCancel, currentToken }) {
   const [value, setValue] = useState('')
   const [error, setError] = useState(initialError || null)
   const [checking, setChecking] = useState(false)
@@ -38,12 +38,17 @@ export default function TokenGate({ initialError, onSave, onCancel, currentToken
       setValue(text)
       if (text.startsWith('pk.')) save(text)
     } catch {
-      setError('Clipboard not available — long-press the field and paste.')
+      setError('Clipboard unavailable. Long-press the field and paste.')
     }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-oled px-5 pt-[calc(var(--sat)+24px)] pb-[calc(var(--sab)+24px)]">
+    <div
+      className={cx(
+        'fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-oled px-5 pt-[calc(var(--sat)+24px)] pb-[calc(var(--sab)+24px)]',
+        leaving ? 'animate-gate-out pointer-events-none' : 'animate-fade-in',
+      )}
+    >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(90%_55%_at_50%_0%,rgba(16,185,129,0.18),transparent_70%)]" />
       <div className="glass animate-rise-in relative w-full max-w-[440px] rounded-[34px] p-6">
         <div className="glass-green mx-auto flex h-16 w-16 items-center justify-center rounded-[22px]">

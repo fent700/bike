@@ -61,7 +61,7 @@ export function formatDuration(seconds) {
   return h > 0 ? `${h}:${pad(m)}:${pad(sec)}` : `${m}:${pad(sec)}`
 }
 
-/** "1 h 12 min" / "18 min" — for route estimates, never seconds. */
+/** "1 h 12 min" / "18 min", for route estimates, never seconds. */
 export function formatEta(seconds) {
   const min = Math.max(1, Math.round((seconds || 0) / 60))
   if (min < 60) return `${min} min`
@@ -96,7 +96,7 @@ export function rideName(ts) {
   return 'Night Ride'
 }
 
-/** "5:42" — the HUD has no room for AM/PM and at a glance doesn't need it. */
+/** "5:42": the HUD has no room for AM/PM and at a glance doesn't need it. */
 export function formatClockShort(date) {
   return formatClock(date).replace(/\s?[AaPp]\.?[Mm]\.?$/, '')
 }

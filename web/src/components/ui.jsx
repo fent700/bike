@@ -4,7 +4,7 @@ import { haptic } from '../lib/native'
 
 const cx = (...parts) => parts.filter(Boolean).join(' ')
 
-/** 56 pt circular glass control — the minimum for gloves on a bumpy road. */
+/** 56 pt circular glass control: the minimum for gloves on a bumpy road. */
 export function RoundButton({ icon: Icon, label, onClick, active, className, iconClass, size = 56, children }) {
   return (
     <button
@@ -123,35 +123,193 @@ export function HoldButton({ onConfirm, children, duration = 800, tone = 'danger
   )
 }
 
-export function Sheet({ open, onClose, title, children, footer, tall }) {
-  if (!open) return null
+/**
+ * Keeps an element mounted after `show` goes false, long enough to play its
+ * way out. Children is a render function taking `leaving`; while leaving it
+ * re-runs the last function rendered while shown, so a closing toast or sheet
+ * keeps its last content instead of going blank mid-animation.
+ */
+export function Presence({ show, exit = 220, children }) {
+  const [mounted, setMounted] = useState(show)
+  const lastRender = useRef(children)
+  if (show) lastRender.current = children
+
+  useEffect(() => {
+    if (show) {
+      setMounted(true)
+      return
+    }
+    const timer = setTimeout(() => setMounted(false), exit)
+    return () => clearTimeout(timer)
+  }, [show, exit])
+
+  if (!show && !mounted) return null
+  return lastRender.current(!show)
+}
+
+const SHEET_EXIT = 300
+
+export function Sheet({ open, onClose, ...props }) {
+  return (
+    <Presence show={open} exit={SHEET_EXIT}>
+      {(leaving) => <SheetFrame leaving={leaving} onClose={onClose} {...props} />}
+    </Presence>
+  )
+}
+
+/**
+ * Bottom sheet that follows the finger. Pull down on the grabber or header,
+ * or on the content once it's scrolled to the top, and it tracks the touch;
+ * let go past a quarter of its height (or flick) and it carries on down and
+ * closes, otherwise it springs back.
+ */
+function SheetFrame({ leaving, onClose, title, children, footer, tall }) {
+  const sheetRef = useRef(null)
+  const headerRef = useRef(null)
+  const scrollRef = useRef(null)
+  const closeRef = useRef(onClose)
+  const [offset, setOffset] = useState(0)
+  const [dragging, setDragging] = useState(false)
+  const [flung, setFlung] = useState(false)
+
+  useEffect(() => {
+    closeRef.current = onClose
+  })
+
+  useEffect(() => {
+    const sheet = sheetRef.current
+    const scroller = scrollRef.current
+    let drag = null
+
+    const begin = (y, t, fromHeader) => {
+      drag = { startY: y, lastY: y, lastT: t, velocity: 0, active: fromHeader }
+      if (fromHeader) setDragging(true)
+    }
+    const move = (y, t) => {
+      const dy = y - drag.startY
+      if (!drag.active) {
+        // Content area: a downward pull at the top of the scroll takes over;
+        // anything else is ordinary scrolling and is left alone.
+        if (dy > 6 && scroller.scrollTop <= 0) {
+          drag.active = true
+          drag.startY = y
+          setDragging(true)
+        } else {
+          if (dy < -6) drag = null
+          return false
+        }
+      }
+      const dt = Math.max(1, t - drag.lastT)
+      drag.velocity = (y - drag.lastY) / dt
+      drag.lastY = y
+      drag.lastT = t
+      const pull = y - drag.startY
+      // Rubber-band upward: the sheet can't go higher than it sits.
+      setOffset(pull > 0 ? pull : -Math.sqrt(-pull) * 2)
+      return true
+    }
+    const end = () => {
+      if (!drag?.active) {
+        drag = null
+        return
+      }
+      const pull = drag.lastY - drag.startY
+      const height = sheet.offsetHeight
+      const dismiss = pull > Math.min(160, height * 0.25) || (drag.velocity > 0.55 && pull > 24)
+      drag = null
+      setDragging(false)
+      if (dismiss) {
+        haptic('light')
+        setFlung(true)
+        setOffset(height + 40)
+        closeRef.current()
+      } else {
+        setOffset(0)
+      }
+    }
+
+    const onTouchStart = (e) => {
+      if (e.touches.length !== 1) return
+      const fromHeader = headerRef.current.contains(e.target)
+      if (!fromHeader && scroller.scrollTop > 0) return
+      begin(e.touches[0].clientY, e.timeStamp, fromHeader)
+    }
+    const onTouchMove = (e) => {
+      if (!drag) return
+      if (move(e.touches[0].clientY, e.timeStamp) && e.cancelable) e.preventDefault()
+    }
+    // Mouse path for desktop dev: header only.
+    const onPointerDown = (e) => {
+      if (e.pointerType !== 'mouse' || e.button !== 0 || e.target.closest('button')) return
+      begin(e.clientY, e.timeStamp, true)
+      const onMove = (ev) => drag && move(ev.clientY, ev.timeStamp)
+      const onUp = () => {
+        end()
+        window.removeEventListener('pointermove', onMove)
+        window.removeEventListener('pointerup', onUp)
+      }
+      window.addEventListener('pointermove', onMove)
+      window.addEventListener('pointerup', onUp)
+    }
+
+    sheet.addEventListener('touchstart', onTouchStart, { passive: true })
+    sheet.addEventListener('touchmove', onTouchMove, { passive: false })
+    sheet.addEventListener('touchend', end)
+    sheet.addEventListener('touchcancel', end)
+    headerRef.current.addEventListener('pointerdown', onPointerDown)
+    const header = headerRef.current
+    return () => {
+      sheet.removeEventListener('touchstart', onTouchStart)
+      sheet.removeEventListener('touchmove', onTouchMove)
+      sheet.removeEventListener('touchend', end)
+      sheet.removeEventListener('touchcancel', end)
+      header.removeEventListener('pointerdown', onPointerDown)
+    }
+  }, [])
+
+  const height = sheetRef.current?.offsetHeight || 600
+  const backdropOpacity = Math.max(0, 1 - Math.max(0, offset) / height)
+
   return (
     <div className="fixed inset-0 z-30 flex flex-col justify-end">
       <button
         type="button"
         aria-label="Close"
-        className="animate-fade-in absolute inset-0 bg-black/35"
+        className={cx('absolute inset-0 bg-black/35', leaving ? 'animate-fade-out' : 'animate-fade-in')}
+        style={{ opacity: backdropOpacity, transition: dragging ? 'none' : 'opacity 300ms ease' }}
         onClick={onClose}
       />
       <section
+        ref={sheetRef}
         className={cx(
-          'glass-strong animate-sheet-in relative mx-auto flex w-full max-w-[620px] flex-col rounded-t-[32px] pb-[calc(var(--sab)+12px)]',
+          'glass-strong relative mx-auto flex w-full max-w-[620px] flex-col rounded-t-[32px] pb-[calc(var(--sab)+12px)]',
           tall ? 'h-[86dvh]' : 'max-h-[86dvh]',
+          // A sheet flung away by hand finishes on its transition; the
+          // keyframe exit would snap it back to the top first.
+          leaving ? !flung && 'animate-sheet-out' : 'animate-sheet-in',
         )}
+        style={{
+          transform: `translateY(${offset}px)`,
+          transition: dragging ? 'none' : `transform ${flung ? 260 : 420}ms var(--ease-spring)`,
+        }}
       >
-        <div className="mx-auto mt-2 h-1.5 w-10 rounded-full bg-white/20" />
-        <header className="flex items-center gap-2 px-5 pt-2 pb-3">
-          <h2 className="flex-1 truncate text-[22px] font-bold tracking-tight">{title}</h2>
-          <button
-            type="button"
-            aria-label="Close"
-            onClick={onClose}
-            className="press glass-well -mr-1 flex h-12 w-12 items-center justify-center rounded-full"
-          >
-            <X className="h-5 w-5 text-white/80" strokeWidth={2.4} />
-          </button>
-        </header>
-        <div className="scroll-y min-h-0 flex-1 px-5">{children}</div>
+        <div ref={headerRef} className="cursor-grab touch-none pt-2 active:cursor-grabbing">
+          <div className="mx-auto h-1.5 w-10 rounded-full bg-white/25" />
+          <header className="flex items-center gap-2 px-5 pt-2 pb-3">
+            <h2 className="flex-1 truncate text-[22px] font-bold tracking-tight">{title}</h2>
+            <button
+              type="button"
+              aria-label="Close"
+              onClick={onClose}
+              className="press glass-well -mr-1 flex h-12 w-12 items-center justify-center rounded-full"
+            >
+              <X className="h-5 w-5 text-white/80" strokeWidth={2.4} />
+            </button>
+          </header>
+        </div>
+        <div ref={scrollRef} className="scroll-y min-h-0 flex-1 px-5">
+          {children}
+        </div>
         {footer && <div className="px-5 pt-3">{footer}</div>}
       </section>
     </div>

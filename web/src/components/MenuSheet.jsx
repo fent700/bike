@@ -22,47 +22,69 @@ export default function MenuSheet({
   onClearLaneCache,
 }) {
   const [selected, setSelected] = useState(null)
+  // Which way the last page change went, so the list slides back in from the
+  // left after Back and the detail pushes in from the right.
+  const [direction, setDirection] = useState(null)
   useEffect(() => {
-    if (!open) setSelected(null)
+    if (!open) {
+      setSelected(null)
+      setDirection(null)
+    }
   }, [open])
+
+  const openRide = (summary) => {
+    setDirection('push')
+    setSelected(summary)
+  }
+  const back = () => {
+    setDirection('back')
+    setSelected(null)
+  }
 
   const title = selected ? selected.name : 'Bike'
   return (
     <Sheet open={open} onClose={onClose} title={title} tall>
       {selected ? (
-        <RideDetail
-          summary={selected}
-          units={settings.units}
-          onBack={() => setSelected(null)}
-          onShow={() => onShowRide(selected)}
-          onShare={() => onShareRide(selected)}
-          onDelete={async () => {
-            await onDeleteRide(selected.id)
-            setSelected(null)
-          }}
-        />
+        <div key={selected.id} className="animate-push-in">
+          <RideDetail
+            summary={selected}
+            units={settings.units}
+            onBack={back}
+            onShow={() => onShowRide(selected)}
+            onShare={() => onShareRide(selected)}
+            onDelete={async () => {
+              await onDeleteRide(selected.id)
+              back()
+            }}
+          />
+        </div>
       ) : (
-        <>
+        <div key="root" className={direction === 'back' ? 'animate-back-in' : undefined}>
           <Segmented
             value={tab}
-            onChange={setTab}
+            onChange={(next) => {
+              setDirection(null)
+              setTab(next)
+            }}
             options={[
               { value: 'rides', label: 'Rides' },
               { value: 'settings', label: 'Settings' },
             ]}
           />
-          {tab === 'rides' ? (
-            <RidesList units={settings.units} version={ridesVersion} onSelect={setSelected} />
-          ) : (
-            <SettingsPanel
-              settings={settings}
-              update={updateSettings}
-              tokenInfo={tokenInfo}
-              onChangeToken={onChangeToken}
-              onClearLaneCache={onClearLaneCache}
-            />
-          )}
-        </>
+          <div key={tab} className={direction === 'back' ? undefined : 'animate-fade-in'}>
+            {tab === 'rides' ? (
+              <RidesList units={settings.units} version={ridesVersion} onSelect={openRide} />
+            ) : (
+              <SettingsPanel
+                settings={settings}
+                update={updateSettings}
+                tokenInfo={tokenInfo}
+                onChangeToken={onChangeToken}
+                onClearLaneCache={onClearLaneCache}
+              />
+            )}
+          </div>
+        </div>
       )}
     </Sheet>
   )

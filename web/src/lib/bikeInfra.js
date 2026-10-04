@@ -76,7 +76,7 @@ function onewayOf(tags, key = 'oneway') {
 /**
  * Turns one OSM way into 0–2 rendered features. Painted lanes become one
  * feature per side, offset off the road centreline, each carrying the
- * direction bikes travel in it — that is what the white arrows draw from.
+ * direction bikes travel in it, which is what the white arrows draw from.
  * Directions assume right-hand traffic.
  */
 function waysToFeatures(way) {

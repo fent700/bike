@@ -252,17 +252,104 @@ button {
     box-shadow: 0 0 0 14px rgb(0 240 118 / 0);
   }
 }
+/* Exits name only their end state, so they start from wherever the element
+   is: a sheet already dragged halfway goes down from there, a backdrop
+   already dimmed by the drag fades from its current opacity. */
+@keyframes sheet-out {
+  to {
+    transform: translateY(105%);
+  }
+}
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes rise-out {
+  to {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+  }
+}
+@keyframes drop-out {
+  to {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.97);
+  }
+}
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+}
+@keyframes pop-out {
+  to {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+}
+@keyframes push-in {
+  from {
+    opacity: 0;
+    transform: translateX(32px);
+  }
+}
+@keyframes back-in {
+  from {
+    opacity: 0;
+    transform: translateX(-32px);
+  }
+}
+@keyframes gate-out {
+  to {
+    opacity: 0;
+    transform: scale(1.04);
+  }
+}
+
+/* Entrances fill `backwards` only: once finished they let go of the element,
+   so inline transforms (sheet drag) and :active scaling (.press) work again.
+   With `both` the last keyframe pins `transform` for the element's lifetime.
+   Exits fill `forwards` and hold their end state until Presence unmounts. */
 .animate-sheet-in {
-  animation: sheet-in 420ms var(--ease-spring) both;
+  animation: sheet-in 420ms var(--ease-spring) backwards;
+}
+.animate-sheet-out {
+  animation: sheet-out 280ms cubic-bezier(0.4, 0, 0.9, 0.55) forwards;
 }
 .animate-fade-in {
-  animation: fade-in 260ms ease both;
+  animation: fade-in 260ms ease backwards;
+}
+.animate-fade-out {
+  animation: fade-out 240ms ease forwards;
 }
 .animate-rise-in {
-  animation: rise-in 360ms var(--ease-spring) both;
+  animation: rise-in 360ms var(--ease-spring) backwards;
+}
+.animate-rise-out {
+  animation: rise-out 200ms cubic-bezier(0.4, 0, 1, 1) forwards;
 }
 .animate-drop-in {
-  animation: drop-in 320ms var(--ease-spring) both;
+  animation: drop-in 320ms var(--ease-spring) backwards;
+}
+.animate-drop-out {
+  animation: drop-out 200ms cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+.animate-pop-in {
+  animation: pop-in 300ms var(--ease-spring) backwards;
+}
+.animate-pop-out {
+  animation: pop-out 180ms cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+.animate-push-in {
+  animation: push-in 320ms var(--ease-spring) backwards;
+}
+.animate-back-in {
+  animation: back-in 320ms var(--ease-spring) backwards;
+}
+.animate-gate-out {
+  animation: gate-out 320ms cubic-bezier(0.4, 0, 1, 1) forwards;
 }
 .animate-soft-pulse {
   animation: soft-pulse 1.6s ease-in-out infinite;

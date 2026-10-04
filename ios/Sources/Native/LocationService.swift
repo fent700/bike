@@ -5,7 +5,7 @@ import UIKit
 /// GPS, compass and barometer for the HUD.
 ///
 /// Foreground: every fix at best-for-navigation accuracy plus heading.
-/// Background: only while a ride is recording — then location keeps running
+/// Background: only while a ride is recording. Then location keeps running
 /// (blue pill in the status bar) so distance and the track stay complete with
 /// the screen locked or another app in front. Not recording and backgrounded,
 /// everything stops; there is nothing to show and no reason to burn battery.
@@ -116,7 +116,7 @@ final class LocationService: NSObject {
             updating = true
             if manager.accuracyAuthorization == .reducedAccuracy {
                 // Approximate location puts the puck somewhere in a 3 km
-                // circle — useless on a bike. Ask for precise for this session.
+                // circle, useless on a bike. Ask for precise for this session.
                 manager.requestTemporaryFullAccuracyAuthorization(withPurposeKey: "Ride")
             }
         } else if !wantLocation, updating {

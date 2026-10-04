@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { Compass, LocateFixed, Navigation2, Pause, Play, Route, Square, Timer } from 'lucide-react'
-import { HoldButton, Stat, cx } from './ui'
+import { HoldButton, Presence, Stat, cx } from './ui'
 import { haptic } from '../lib/native'
 import { liveMovingTime } from '../lib/ride'
 import {
@@ -19,8 +19,8 @@ import {
  *
  *   [ SPEED ] | [ time / distance ]  or  [ ETA / remaining ]  or  [ Start ] | (recenter)
  *
- * Tapping the middle opens the ride panel above it — secondary stats plus
- * pause / finish — and it folds itself away again after a few seconds.
+ * Tapping the middle opens the ride panel above it (secondary stats plus
+ * pause / finish), and it folds itself away again after a few seconds.
  */
 export default function GlassHUD({
   units,
@@ -57,20 +57,34 @@ export default function GlassHUD({
       ref={stackRef}
       className="pointer-events-none fixed inset-x-0 bottom-0 z-20 flex flex-col items-center gap-2.5 px-3 pb-[calc(var(--sab)+10px)] pl-[calc(var(--sal)+12px)] pr-[calc(var(--sar)+12px)]"
     >
-      {expanded && ride && (
-        <RidePanel
-          ride={ride}
-          now={now}
-          units={units}
-          nav={nav}
-          paused={paused}
-          onPause={onPause}
-          onResume={onResume}
-          onFinish={onFinish}
-        />
-      )}
+      <Presence show={Boolean(expanded && ride)}>
+        {(leaving) => (
+          <RidePanel
+            leaving={leaving}
+            ride={ride}
+            now={now}
+            units={units}
+            nav={nav}
+            paused={paused}
+            onPause={onPause}
+            onResume={onResume}
+            onFinish={onFinish}
+          />
+        )}
+      </Presence>
 
-      {aboveBar}
+      <Presence show={Boolean(aboveBar)}>
+        {(leaving) => (
+          <div
+            className={cx(
+              'flex w-full justify-center',
+              leaving ? 'animate-rise-out pointer-events-none' : 'animate-rise-in',
+            )}
+          >
+            {aboveBar}
+          </div>
+        )}
+      </Presence>
 
       <div
         ref={barRef}
@@ -192,7 +206,7 @@ function RecenterButton({ mode, onClick }) {
   )
 }
 
-function RidePanel({ ride, now, units, nav, paused, onPause, onResume, onFinish }) {
+function RidePanel({ leaving, ride, now, units, nav, paused, onPause, onResume, onFinish }) {
   const moving = liveMovingTime(ride, now)
   const avg = moving > 5 ? ride.distance / moving : 0
   const imperial = isImperial(units)
@@ -219,7 +233,12 @@ function RidePanel({ ride, now, units, nav, paused, onPause, onResume, onFinish 
       ]
 
   return (
-    <div className="glass animate-rise-in pointer-events-auto w-full max-w-[560px] rounded-[30px] p-3 [@media(max-height:520px)]:max-w-[780px]">
+    <div
+      className={cx(
+        'glass w-full max-w-[560px] rounded-[30px] p-3 [@media(max-height:520px)]:max-w-[780px]',
+        leaving ? 'animate-rise-out pointer-events-none' : 'animate-rise-in pointer-events-auto',
+      )}
+    >
       <div className="grid grid-cols-3 gap-2 [@media(max-height:520px)]:grid-cols-6">
         {stats.map((s) => (
           <Stat key={s.label} {...s} compact />

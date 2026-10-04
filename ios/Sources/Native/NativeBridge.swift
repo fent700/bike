@@ -5,7 +5,7 @@ import WebKit
 /// The seam between the web HUD and the phone.
 ///
 /// JS → native: `window.webkit.messageHandlers.bike.postMessage({ type, … })`
-/// native → JS: `window.__bikeNative.receive({ type, … })` — see web/src/lib/native.js
+/// native → JS: `window.__bikeNative.receive({ type, … })` (see web/src/lib/native.js)
 ///
 /// Nothing is sent until the page says `ready`, so no event can land before
 /// its handler exists. Location fixes that arrive while the app is in the
@@ -24,7 +24,7 @@ final class NativeBridge: NSObject {
     private var keepAwake = true
     private var pendingFixes: [[String: Any]] = []
 
-    /// A full day of 1 Hz fixes. Beyond this the oldest go — a ride left
+    /// A full day of 1 Hz fixes. Beyond this the oldest go; a ride left
     /// recording in a pocket for a week shouldn't grow without bound.
     private static let pendingLimit = 86_400
     private static let batchSize = 1_500
@@ -146,7 +146,7 @@ final class NativeBridge: NSObject {
 
     /// Overpass answers 406 to a browser User-Agent whose Origin isn't
     /// http(s), which is every request from bike://app. URLSession can name
-    /// the app instead — what Overpass's usage policy asks clients to do.
+    /// the app instead, which is what Overpass's usage policy asks clients to do.
     /// Limited to the Overpass mirrors web/src/lib/bikeInfra.js uses, so the
     /// page can't be turned into a general-purpose proxy.
     private static let fetchHosts: Set<String> = [

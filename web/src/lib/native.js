@@ -47,8 +47,8 @@ export function postNative(type, payload = {}) {
 export const haptic = (style = 'light') => postNative('haptic', { style })
 
 // HTTP through URLSession instead of the webview. Overpass turns away
-// browser requests whose Origin isn't http(s) — and this page's origin is
-// bike://app — but accepts a client that names itself in its User-Agent,
+// browser requests whose Origin isn't http(s) (and this page's origin is
+// bike://app) but accepts a client that names itself in its User-Agent,
 // which only native code can set.
 let fetchSeq = 0
 const pendingFetches = new Map()

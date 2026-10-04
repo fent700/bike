@@ -6,7 +6,7 @@ import { readLocal } from '../lib/storage'
 
 const STYLE = 'mapbox://styles/mapbox/dark-v11'
 const FOLLOW_PITCH = 50
-const FRAME_INTERVAL = 30 // ms — ~30 fps is smooth at riding speed and halves GPU time vs 60
+const FRAME_INTERVAL = 30 // ms; ~30 fps is smooth at riding speed and halves GPU time vs 60
 const EMPTY = { type: 'FeatureCollection', features: [] }
 
 /** Look further ahead the faster you go: z17.1 standing, z15.5 at ~33 mph. */
@@ -41,7 +41,7 @@ function createDestinationElement() {
  *
  * Position and heading arrive through `liveRef` (mutated by App on every fix)
  * rather than props, so a 1 Hz GPS stream never re-renders React. A rAF loop
- * interpolates between fixes and drives both the puck and — in follow modes —
+ * interpolates between fixes and drives both the puck and, in follow modes,
  * the camera, which keeps the puck pinned while the road slides underneath.
  *
  * followMode: 'follow' (heading-up, pitched, puck low) | 'north' | 'free'
@@ -68,6 +68,7 @@ export default function Map({
   const motionRef = useRef(null)
   const propsRef = useRef({})
   const [ready, setReady] = useState(false)
+  const [viewportHeight, setViewportHeight] = useState(0)
 
   useEffect(() => {
     propsRef.current = { followMode, settings, onFollowBreak, onLongPress, onAuthError, infra }
@@ -249,15 +250,25 @@ export default function Map({
       const camera = {}
       if (moved) camera.center = pos
       if (turning || Math.abs(angleDiff(map.getBearing(), camBearing)) > 0.05) camera.bearing = camBearing
-      // Never pass zoom: undefined — jumpTo treats the key's presence as an
+      // Never pass zoom: undefined. jumpTo treats the key's presence as an
       // instruction and the map goes to NaN.
       if (!motion.userZooming && Math.abs(map.getZoom() - motion.zoom) > 0.002) camera.zoom = motion.zoom
       if (camera.center || camera.bearing != null || camera.zoom != null) map.jumpTo(camera)
     }
     raf = requestAnimationFrame(frame)
 
+    // Mapbox only listens for window resizes. The web view's first layout,
+    // rotation and the status bar changing height all resize the container
+    // without necessarily resizing the window.
+    const resizeObserver = new ResizeObserver(() => {
+      map.resize()
+      setViewportHeight(Math.round(containerRef.current?.clientHeight ?? 0))
+    })
+    resizeObserver.observe(containerRef.current)
+
     mapRef.current = map
     return () => {
+      resizeObserver.disconnect()
       cancelAnimationFrame(raf)
       clearTimeout(browseTimer)
       cancelPress()
@@ -288,7 +299,7 @@ export default function Map({
     map.touchZoomRotate.disableRotation()
     map.scrollZoom.enable({ around: 'center' })
 
-    const height = map.getContainer().clientHeight
+    const height = viewportHeight || map.getContainer().clientHeight
     const padding = {
       top: followMode === 'follow' ? Math.round(height * 0.42) : 0,
       bottom: bottomInset,
@@ -308,7 +319,7 @@ export default function Map({
     }
     motion.transitionUntil = performance.now() + 950
     map.easeTo(options)
-  }, [followMode, ready, settings.tilt, bottomInset])
+  }, [followMode, ready, settings.tilt, bottomInset, viewportHeight])
 
   useEffect(() => {
     const map = mapRef.current
@@ -345,7 +356,7 @@ export default function Map({
         const map = mapRef.current
         if (!map || !bounds) return
         // Follow-mode padding is persistent camera state and fitBounds adds
-        // to it — clear it first or the route squeezes into the bottom third.
+        // to it. Clear it first or the route squeezes into the bottom third.
         map.setPadding({ top: 0, bottom: 0, left: 0, right: 0 })
         map.fitBounds(
           [
@@ -382,5 +393,9 @@ export default function Map({
     [],
   )
 
-  return <div ref={containerRef} className="absolute inset-0" />
+  // Inline, not a Tailwind class: mapbox-gl.css sets `.mapboxgl-map {
+  // position: relative }` outside any cascade layer, and unlayered CSS beats
+  // Tailwind's layered utilities whatever the order. With `absolute inset-0`
+  // the container collapsed and the map drew in a strip under the status bar.
+  return <div ref={containerRef} style={{ position: 'absolute', inset: 0 }} />
 }

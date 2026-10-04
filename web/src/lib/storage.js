@@ -1,5 +1,5 @@
 // Two tiers. localStorage for small settings that must be readable
-// synchronously on first render; IndexedDB for anything that grows — ride
+// synchronously on first render; IndexedDB for anything that grows. Ride
 // tracks and cached bike-lane tiles would blow the ~5 MB localStorage quota
 // within a month of daily rides.
 

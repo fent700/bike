@@ -8,7 +8,7 @@ import RoutePreview from './components/RoutePreview'
 import MenuSheet from './components/MenuSheet'
 import RideSummary from './components/RideSummary'
 import TokenGate from './components/TokenGate'
-import { RoundButton, cx } from './components/ui'
+import { Presence, RoundButton, cx } from './components/ui'
 import { useMapboxToken, usePlaces, useSettings } from './hooks/useSettings'
 import { useNow } from './hooks/useNow'
 import { useWakeLock } from './hooks/useWakeLock'
@@ -165,7 +165,7 @@ export default function App() {
         kind = hit?.kind ?? null
         if (!hit && !infra.hasDataAt(latest.lon, latest.lat)) kind = mapRef.current?.probeBikeAt(latest.lon, latest.lat) ?? null
       }
-      // Two agreeing fixes to enter, three to leave — GPS wanders a few
+      // Two agreeing fixes to enter, three to leave. GPS wanders a few
       // metres either side of a lane and the pill shouldn't flicker with it.
       const h = laneRef.current
       if (kind === h.candidate) h.count++
@@ -260,7 +260,7 @@ export default function App() {
         setTrail(recorder.trail())
         return
       }
-      // Abandoned overnight — file it rather than resume it.
+      // Abandoned overnight: file it rather than resume it.
       const result = recorder.finish()
       dbDelete(STORES.kv, 'activeRide')
       if (result && result.summary.distance >= 30) persistFinished(result)
@@ -320,7 +320,7 @@ export default function App() {
     if (!result) return
     const { summary, track } = result
     if (summary.distance < 30 && summary.movingTime < 30) {
-      showToast('Ride too short — not saved')
+      showToast('Ride too short, not saved')
       return
     }
     persistFinished(result)
@@ -544,18 +544,21 @@ export default function App() {
         ref={topRef}
         className="safe-top pointer-events-none fixed inset-x-0 z-20 flex flex-col items-center gap-2 pr-[calc(var(--sar)+12px)] pl-[calc(var(--sal)+12px)]"
       >
-        {nav && (
-          <ManeuverBanner
-            state={nav.state}
-            destination={nav.destination}
-            units={settings.units}
-            rerouting={nav.rerouting}
-            onEnd={() => {
-              haptic('medium')
-              endNav()
-            }}
-          />
-        )}
+        <Presence show={Boolean(nav)}>
+          {(leaving) => (
+            <ManeuverBanner
+              leaving={leaving}
+              state={nav?.state}
+              destination={nav?.destination}
+              units={settings.units}
+              rerouting={nav?.rerouting}
+              onEnd={() => {
+                haptic('medium')
+                endNav()
+              }}
+            />
+          )}
+        </Presence>
         <StatusPill
           locStatus={locStatus}
           hasFix={hasFix}
@@ -566,37 +569,54 @@ export default function App() {
           paused={ride?.status === 'paused'}
           compact={Boolean(nav)}
         />
-        {viewedRide && !finished && (
-          <button
-            type="button"
-            onClick={() => setViewedRide(null)}
-            className="glass animate-drop-in pointer-events-auto flex h-11 items-center gap-2 rounded-full pr-2 pl-4 text-[15px] font-semibold"
-          >
-            {viewedRide.name}
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10">
-              <X className="h-4 w-4" />
-            </span>
-          </button>
-        )}
-        {toast && (
-          <div className="glass animate-drop-in rounded-2xl px-4 py-2.5 text-[15px] font-medium">{toast}</div>
-        )}
+        <Presence show={Boolean(viewedRide && !finished)}>
+          {(leaving) => (
+            <button
+              type="button"
+              onClick={() => setViewedRide(null)}
+              className={cx(
+                'glass flex h-11 items-center gap-2 rounded-full pr-2 pl-4 text-[15px] font-semibold',
+                leaving ? 'animate-drop-out' : 'animate-drop-in pointer-events-auto',
+              )}
+            >
+              {viewedRide?.name}
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10">
+                <X className="h-4 w-4" />
+              </span>
+            </button>
+          )}
+        </Presence>
+        <Presence show={Boolean(toast)}>
+          {(leaving) => (
+            <div
+              className={cx(
+                'glass rounded-2xl px-4 py-2.5 text-[15px] font-medium',
+                leaving ? 'animate-drop-out' : 'animate-drop-in',
+              )}
+            >
+              {toast}
+            </div>
+          )}
+        </Presence>
       </div>
 
-      {/* Out of the way while the ride panel is open — in landscape the panel
+      {/* Out of the way while the ride panel is open. In landscape the panel
           spans the width the buttons sit in. */}
-      {!preview && !hudExpanded && (
-        <div
-          className={cx(
-            'pointer-events-none fixed right-[calc(var(--sar)+12px)] z-20 flex flex-col gap-3 transition-opacity duration-500',
-            riding && 'opacity-45',
-          )}
-          style={{ top: nav ? 'calc(var(--sat) + 150px)' : 'calc(var(--sat) + 66px)' }}
-        >
-          {!nav && <RoundButton icon={Search} label="Search" onClick={() => setSheet('search')} />}
-          <RoundButton icon={Menu} label="Menu" onClick={() => setSheet('menu')} />
-        </div>
-      )}
+      <Presence show={!preview && !hudExpanded}>
+        {(leaving) => (
+          <div
+            className={cx(
+              'pointer-events-none fixed right-[calc(var(--sar)+12px)] z-20 flex origin-top-right flex-col gap-3 transition-opacity duration-500',
+              riding && 'opacity-45',
+              leaving ? 'animate-pop-out [&_button]:pointer-events-none' : 'animate-pop-in',
+            )}
+            style={{ top: nav ? 'calc(var(--sat) + 150px)' : 'calc(var(--sat) + 66px)' }}
+          >
+            {!nav && <RoundButton icon={Search} label="Search" onClick={() => setSheet('search')} />}
+            <RoundButton icon={Menu} label="Menu" onClick={() => setSheet('menu')} />
+          </div>
+        )}
+      </Presence>
 
       <GlassHUD
         units={settings.units}
@@ -681,18 +701,21 @@ export default function App() {
         }}
       />
 
-      {showGate && (
-        <TokenGate
-          initialError={authError}
-          currentToken={editingToken && !authError ? token : null}
-          onCancel={() => setEditingToken(false)}
-          onSave={(t) => {
-            setToken(t)
-            setAuthError(null)
-            setEditingToken(false)
-          }}
-        />
-      )}
+      <Presence show={showGate} exit={320}>
+        {(leaving) => (
+          <TokenGate
+            leaving={leaving}
+            initialError={authError}
+            currentToken={editingToken && !authError ? token : null}
+            onCancel={() => setEditingToken(false)}
+            onSave={(t) => {
+              setToken(t)
+              setAuthError(null)
+              setEditingToken(false)
+            }}
+          />
+        )}
+      </Presence>
     </div>
   )
 }

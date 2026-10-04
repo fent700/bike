@@ -9,7 +9,7 @@ export default function RoutePreview({ preview, units, isFavorite, onToggleFavor
   return (
     <div
       ref={cardRef}
-      className="glass animate-rise-in pointer-events-auto w-full max-w-[560px] rounded-[30px] p-3.5"
+      className="glass pointer-events-auto w-full max-w-[560px] rounded-[30px] p-3.5"
     >
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1 pt-0.5 pl-1">

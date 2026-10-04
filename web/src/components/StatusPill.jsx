@@ -15,7 +15,7 @@ import { compassPoint } from '../lib/geo'
 import { isNative, postNative } from '../lib/native'
 import { formatNavDistance } from '../lib/units'
 import { routeLabel } from '../lib/navigation'
-import { cx } from './ui'
+import { Presence, cx } from './ui'
 
 const DOT = {
   green: 'bg-lane-hi shadow-[0_0_10px_2px_rgba(0,240,118,0.6)]',
@@ -36,7 +36,7 @@ export function StatusPill({ locStatus, hasFix, accuracy, lane, heading, online,
   if (locStatus === 'denied') {
     tone = 'red'
     if (isNative) {
-      text = 'Location Off — Tap to Fix'
+      text = 'Location Off · Tap to Fix'
       onClick = () => postNative('openSettings')
     } else {
       text = 'Location Blocked'
@@ -59,40 +59,51 @@ export function StatusPill({ locStatus, hasFix, accuracy, lane, heading, online,
   }
 
   const showHeading = heading != null && hasFix
-  if (!text && !showHeading && online) return null
+  const visible = Boolean(text || showHeading || !online)
 
   const Wrapper = onClick ? 'button' : 'div'
   return (
-    <Wrapper
-      type={onClick ? 'button' : undefined}
-      onClick={onClick}
-      className={cx(
-        'glass animate-drop-in pointer-events-auto flex items-center gap-2.5 rounded-full px-4',
-        compact ? 'h-10' : 'h-11',
+    <Presence show={visible}>
+      {(leaving) => (
+        <Wrapper
+          type={onClick ? 'button' : undefined}
+          onClick={onClick}
+          className={cx(
+            'glass flex items-center gap-2.5 rounded-full px-4',
+            compact ? 'h-10' : 'h-11',
+            leaving ? 'animate-drop-out' : 'animate-drop-in pointer-events-auto',
+          )}
+        >
+          {!online && <WifiOff className="h-4 w-4 text-caution" strokeWidth={2.4} />}
+          {text && (
+            // Keyed on the text so a change (Bike Lane → Protected Lane)
+            // fades in rather than snapping.
+            <span key={text} className="animate-fade-in flex items-center gap-2.5">
+              <span
+                className={cx('h-2.5 w-2.5 rounded-full', DOT[tone], tone === 'amber' && !hasFix && 'animate-soft-pulse')}
+              />
+              <span className={cx('text-[15px] font-semibold tracking-tight', tone === 'green' && 'text-lane-hi')}>
+                {text}
+              </span>
+            </span>
+          )}
+          {text && showHeading && <span className="h-4 w-px bg-white/15" />}
+          {showHeading && (
+            <span className="flex items-center gap-1.5">
+              <Navigation2
+                className="h-3.5 w-3.5 fill-white/80 text-white/80"
+                style={{ transform: `rotate(${Math.round(heading)}deg)` }}
+                strokeWidth={2}
+              />
+              <span className="metric text-[15px] font-semibold">
+                {compassPoint(heading)}
+                <span className="ml-1 text-white/45">{Math.round(heading) % 360}°</span>
+              </span>
+            </span>
+          )}
+        </Wrapper>
       )}
-    >
-      {!online && <WifiOff className="h-4 w-4 text-caution" strokeWidth={2.4} />}
-      {text && (
-        <>
-          <span className={cx('h-2.5 w-2.5 rounded-full', DOT[tone], tone === 'amber' && !hasFix && 'animate-soft-pulse')} />
-          <span className={cx('text-[15px] font-semibold tracking-tight', tone === 'green' && 'text-lane-hi')}>{text}</span>
-        </>
-      )}
-      {text && showHeading && <span className="h-4 w-px bg-white/15" />}
-      {showHeading && (
-        <span className="flex items-center gap-1.5">
-          <Navigation2
-            className="h-3.5 w-3.5 fill-white/80 text-white/80"
-            style={{ transform: `rotate(${Math.round(heading)}deg)` }}
-            strokeWidth={2}
-          />
-          <span className="metric text-[15px] font-semibold">
-            {compassPoint(heading)}
-            <span className="ml-1 text-white/45">{Math.round(heading) % 360}°</span>
-          </span>
-        </span>
-      )}
-    </Wrapper>
+    </Presence>
   )
 }
 
@@ -121,12 +132,17 @@ function maneuverIcon(step) {
 }
 
 /** Next maneuver, sized to read without leaning in. */
-export function ManeuverBanner({ state, destination, units, rerouting, onEnd }) {
+export function ManeuverBanner({ state, destination, units, rerouting, onEnd, leaving }) {
   const step = state?.upcoming
   const Icon = rerouting ? RotateCcw : maneuverIcon(step)
   const arriving = state?.arrived
   return (
-    <div className="glass animate-drop-in pointer-events-auto flex w-full max-w-[560px] items-center gap-3 rounded-[30px] p-2.5">
+    <div
+      className={cx(
+        'glass flex w-full max-w-[560px] items-center gap-3 rounded-[30px] p-2.5',
+        leaving ? 'animate-drop-out' : 'animate-drop-in pointer-events-auto',
+      )}
+    >
       <div
         className={cx(
           'flex h-[64px] w-[64px] shrink-0 items-center justify-center rounded-[22px]',

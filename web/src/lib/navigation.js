@@ -100,7 +100,7 @@ export function normalizeRoute(route) {
   for (const leg of route.legs) {
     for (const step of leg.steps) {
       // Locate each maneuver on the overview polyline rather than summing step
-      // distances — the API's per-step metres drift from the geometry's own
+      // distances. The API's per-step metres drift from the geometry's own
       // length by a few percent over a long route, which is a turn called
       // 40 m late at the end of a 5 km ride.
       const hit = nearestOnLine(step.maneuver.location, coords, cum, searchFrom, Math.min(coords.length - 1, searchFrom + 400))

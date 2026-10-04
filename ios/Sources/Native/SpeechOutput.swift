@@ -4,7 +4,7 @@ import OSLog
 /// Turn cues through the riding headphones.
 ///
 /// `.duckOthers` dips whatever is playing under the cue and
-/// `.notifyOthersOnDeactivation` is what brings it back up afterwards — skip
+/// `.notifyOthersOnDeactivation` is what brings it back up afterwards. Skip
 /// that flag and the music stays quiet for the rest of the ride.
 /// `.interruptSpokenAudioAndMixWithOthers` pauses podcasts instead of talking
 /// over them.
@@ -27,7 +27,7 @@ final class SpeechOutput: NSObject {
             log.error("audio session: \(error.localizedDescription, privacy: .public)")
         }
 
-        // A newer cue supersedes the one still talking — the old one is about
+        // A newer cue supersedes the one still talking; the old one is about
         // a turn the rider has probably already reached.
         if synthesizer.isSpeaking {
             synthesizer.stopSpeaking(at: .word)
@@ -41,7 +41,7 @@ final class SpeechOutput: NSObject {
         synthesizer.speak(utterance)
     }
 
-    /// Only once the queue has drained — releasing between two utterances
+    /// Only once the queue has drained. Releasing between two utterances
     /// makes the music surge back up mid-sentence.
     private func releaseSessionIfIdle() {
         guard !synthesizer.isSpeaking else { return }

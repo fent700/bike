@@ -3,10 +3,10 @@ import { destination } from './geo'
 
 /**
  * One location stream, three backends:
- *   native    — CoreLocation through the iOS shell. Background-capable, true
+ *   native:   CoreLocation through the iOS shell. Background-capable, true
  *               heading, barometric altitude, one permission prompt.
- *   browser   — navigator.geolocation, for `npm run dev` and Safari.
- *   simulate  — synthetic ride (`?sim` in the URL) for working on the HUD
+ *   browser:  navigator.geolocation, for `npm run dev` and Safari.
+ *   simulate: synthetic ride (`?sim` in the URL) for working on the HUD
  *               without leaving the desk.
  *
  * Every backend emits the same fix shape:

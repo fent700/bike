@@ -1,6 +1,6 @@
 name: Build IPA
 
-# Public repo, so macOS minutes are free — every push to main gets an IPA.
+# Public repo, so macOS minutes are free and every push to main gets an IPA.
 # README-only commits don't need one.
 on:
   push:
@@ -75,7 +75,7 @@ jobs:
       - name: Install XcodeGen
         run: brew install xcodegen
 
-      # project.yml is the source of truth — the .xcodeproj is gitignored and
+      # project.yml is the source of truth. The .xcodeproj is gitignored and
       # generated here, so a mangled project file can never reach CI. It must
       # run after the web build: XcodeGen rejects the missing Web folder.
       - name: Generate Xcode project
@@ -85,7 +85,7 @@ jobs:
           xcodebuild -list -project Bike.xcodeproj
 
       # Signing off entirely. ESign signs on the way onto the device, so a
-      # signature applied here would only have to be stripped again — and the
+      # signature applied here would only have to be stripped again, and the
       # runner has no team, profile or key to sign with anyway. The run number
       # becomes the build number so each IPA is distinguishable in ESign.
       - name: Build (Release, iphoneos, unsigned)
@@ -133,11 +133,11 @@ jobs:
         run: |
           unzip -l Bike.ipa | tail -3
           if unzip -l Bike.ipa | grep -q '_CodeSignature'; then
-            echo "error: archive carries a code signature — ESign expects it unsigned."
+            echo "error: archive carries a code signature; ESign expects it unsigned."
             exit 1
           fi
           if unzip -l Bike.ipa | grep -q '__MACOSX'; then
-            echo "error: archive carries macOS resource forks — sideloaders reject these."
+            echo "error: archive carries macOS resource forks; sideloaders reject these."
             exit 1
           fi
           unzip -l Bike.ipa | grep -q 'Payload/Bike.app/Web/index.html'

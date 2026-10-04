@@ -2,8 +2,8 @@ import { distance, lineBounds, simplify } from './geo'
 import { rideName } from './units'
 
 // Thresholds, all from riding rather than from a spec sheet:
-const MAX_FIX_ACCURACY = 35 // m — worse than this is urban-canyon garbage
-const MAX_COUNTED_GAP = 15_000 // ms — a longer hole means the app was dead, not riding
+const MAX_FIX_ACCURACY = 35 // m; worse than this is urban-canyon garbage
+const MAX_COUNTED_GAP = 15_000 // ms; a longer hole means the app was dead, not riding
 const AUTO_PAUSE_BELOW = 0.9 // m/s ≈ 2 mph
 const AUTO_PAUSE_AFTER = 5_000 // ms below the threshold before the clock stops
 const AUTO_RESUME_ABOVE = 1.5 // m/s ≈ 3.4 mph
@@ -95,7 +95,7 @@ export class RideRecorder {
     r.status = 'recording'
     // New track segment so GPX shows the gap instead of a straight line across
     // wherever the bike went while paused. The anchor resets for the same
-    // reason — distance ridden while paused is not this ride's distance.
+    // reason: distance ridden while paused is not this ride's distance.
     r.seg++
     r.anchor = null
     r.lastT = null

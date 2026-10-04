@@ -15,7 +15,7 @@ settings:
     CODE_SIGN_STYLE: Automatic
 
 # Declared explicitly rather than left to Xcode. Xcode invents a scheme the
-# first time you open a project, but it lands in xcuserdata — which does not
+# first time you open a project, but it lands in xcuserdata, which does not
 # exist on a fresh CI checkout, so `xcodebuild -scheme Bike` would fail with
 # "scheme not found" right after xcodegen reported success.
 schemes:
@@ -36,7 +36,7 @@ targets:
       - path: Sources
       # The built web app (web/ → `npm run build:ios`). A folder reference, not
       # a group, so it lands in the bundle as Bike.app/Web/ with its assets/
-      # subdirectory intact — a group would flatten every file into the bundle
+      # subdirectory intact. A group would flatten every file into the bundle
       # root and break each relative URL in index.html.
       #
       # XcodeGen refuses a source path that doesn't exist, so the web build has

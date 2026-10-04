@@ -2,7 +2,7 @@
 #
 # Wraps the last Release build into a sideloadable IPA.
 #
-# The build only produces Bike.app — wrapping is a separate step, and it is the
+# The build only produces Bike.app. Wrapping is a separate step, and it is the
 # step that silently produces a broken IPA when the build actually failed:
 # resources copy before compilation, so a dead build still leaves a .app behind
 # with no executable in it. That is checked here rather than discovered in eSign.
@@ -22,7 +22,7 @@ fi
 
 if [ ! -f "$APP/Bike" ]; then
     echo "error: $APP has no executable."
-    echo "       the build failed — resources copied, compilation did not."
+    echo "       the build failed: resources copied, compilation did not."
     exit 1
 fi
 
@@ -41,7 +41,7 @@ fi
 NEWEST_SOURCE="$(find Sources -type f \( -name '*.swift' -o -name '*.plist' \) -newer "$APP/Bike" -print -quit)"
 if [ -n "$NEWEST_SOURCE" ]; then
     echo "error: $NEWEST_SOURCE is newer than the built binary."
-    echo "       the last build failed or never ran — packaging it would ship stale code."
+    echo "       the last build failed or never ran; packaging it would ship stale code."
     exit 1
 fi
 

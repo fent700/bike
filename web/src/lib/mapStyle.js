@@ -261,7 +261,7 @@ export function addOverlayLayers(map) {
       'source-layer': 'road',
       filter: ['match', ['get', 'bike_lane'], ['left', 'right', 'both', 'yes'], true, false],
       layout: round,
-      // Centreline only — Mapbox doesn't say which side. Kept thin and dim so
+      // Centreline only; Mapbox doesn't say which side. Kept thin and dim so
       // the per-side OSM lanes read as the real thing once their tile lands.
       paint: { 'line-color': COLORS.lane, 'line-opacity': 0.5, 'line-width': zoomWidth([[11, 0.8], [14, 1.6], [16, 2.2], [18, 3], [20, 5]]) },
     },
