@@ -74,7 +74,7 @@ export default function GlassHUD({
 
       <div
         ref={barRef}
-        className="glass pointer-events-auto flex w-full max-w-[560px] items-center gap-2 rounded-[32px] py-2.5 pr-2.5 pl-5"
+        className="glass pointer-events-auto flex w-full max-w-[560px] items-center gap-2 rounded-[32px] py-2.5 pr-2.5 pl-5 [@media(max-height:520px)]:max-w-[780px]"
       >
         <div className="flex min-w-[104px] flex-col items-start" aria-label="Speed">
           <div className={cx('metric flex items-baseline leading-none', !speedLive && 'text-white/35')}>
@@ -219,8 +219,8 @@ function RidePanel({ ride, now, units, nav, paused, onPause, onResume, onFinish 
       ]
 
   return (
-    <div className="glass animate-rise-in pointer-events-auto w-full max-w-[560px] rounded-[30px] p-3">
-      <div className="grid grid-cols-3 gap-2">
+    <div className="glass animate-rise-in pointer-events-auto w-full max-w-[560px] rounded-[30px] p-3 [@media(max-height:520px)]:max-w-[780px]">
+      <div className="grid grid-cols-3 gap-2 [@media(max-height:520px)]:grid-cols-6">
         {stats.map((s) => (
           <Stat key={s.label} {...s} compact />
         ))}

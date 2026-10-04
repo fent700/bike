@@ -25,7 +25,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # Picking the newest installed Xcode beats pinning a version that gets
       # retired out from under the workflow.
@@ -39,7 +39,7 @@ jobs:
           swift --version
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -143,10 +143,16 @@ jobs:
           unzip -l Bike.ipa | grep -q 'Payload/Bike.app/Web/index.html'
           echo "unsigned, no resource forks, Payload/Bike.app with its web bundle present."
 
+      # Uploaded as the bare .ipa, not zipped inside another archive: on the
+      # phone it downloads straight into Files and opens in ESign as is. The
+      # run number in the filename tells builds apart.
+      - name: Name the IPA after the run
+        run: mv ios/Bike.ipa "ios/Bike-${{ github.run_number }}.ipa"
+
       - name: Upload IPA
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          name: Bike-ipa-${{ github.run_number }}
-          path: ios/Bike.ipa
+          path: ios/Bike-${{ github.run_number }}.ipa
+          archive: false
           if-no-files-found: error
           retention-days: 30

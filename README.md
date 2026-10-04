@@ -15,7 +15,7 @@ Every push to `main` runs `.github/workflows/build-ipa.yml` on a macOS runner. T
 3. generates the Xcode project with XcodeGen and builds Release for `iphoneos` with signing off
 4. packages `Bike.ipa` with `ios/Scripts/package.sh` and uploads it as an artifact
 
-Download **Bike-ipa-N** from the run page and open it in ESign. The archive is deliberately unsigned; ESign signs it on the way onto the device. The run number becomes the build number, so you can tell installs apart.
+Download **Bike-N.ipa** from the run page (it comes down as the bare `.ipa`, not a zip) and open it in ESign. The archive is deliberately unsigned; ESign signs it on the way onto the device. The run number becomes the build number, so you can tell installs apart.
 
 ### Mapbox token (one time)
 

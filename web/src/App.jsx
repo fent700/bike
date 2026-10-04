@@ -583,7 +583,9 @@ export default function App() {
         )}
       </div>
 
-      {!preview && (
+      {/* Out of the way while the ride panel is open — in landscape the panel
+          spans the width the buttons sit in. */}
+      {!preview && !hudExpanded && (
         <div
           className={cx(
             'pointer-events-none fixed right-[calc(var(--sar)+12px)] z-20 flex flex-col gap-3 transition-opacity duration-500',
